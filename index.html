@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Atelier</title>
+  <meta name="description" content="Upload a reference photo and watch it drawn step by step on a blank canvas, then draw along.">
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Atelier">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="app">
+
+  <!-- ============ HOME ============ -->
+  <section id="home" class="view">
+    <div class="home-scroll">
+      <header class="hero">
+        <div class="logo" aria-hidden="true"></div>
+        <h1>Atelier</h1>
+        <p>Turn any photo into a step-by-step drawing lesson, drawn live on a blank canvas.</p>
+      </header>
+
+      <div class="card drop" id="drop">
+        <div class="drop-art" id="dropArt" aria-hidden="true"></div>
+        <div class="drop-title">Add a reference photo</div>
+        <div class="drop-sub">Drop one here, paste it, or pick from your library.</div>
+        <div class="btn-row">
+          <button class="btn primary" id="pickBtn" data-press><span data-icon="photo"></span>Choose Photo</button>
+          <button class="btn secondary" id="camBtn" data-press><span data-icon="camera"></span>Camera</button>
+        </div>
+        <button class="btn text" id="sampleBtn" data-press>Try a sample scene</button>
+        <input type="file" id="file" accept="image/*" hidden>
+        <input type="file" id="fileCam" accept="image/*" capture="environment" hidden>
+      </div>
+
+      <div class="group-label">Detail level</div>
+      <div class="seg" id="levelSeg" role="tablist" data-value="standard">
+        <i class="seg-thumb"></i>
+        <button data-v="easy" data-press>Easy</button>
+        <button data-v="standard" data-press>Standard</button>
+        <button data-v="detailed" data-press>Detailed</button>
+      </div>
+      <p class="hint" id="levelHint">Balanced: about a dozen steps with shading and details.</p>
+
+      <div id="recentWrap" hidden>
+        <div class="group-label">Recent</div>
+        <div class="recent" id="recent"></div>
+      </div>
+
+      <footer class="foot">
+        <span data-icon="lock"></span>
+        <span>Analysis runs on your device. Photos never leave it unless you turn on the AI coach.</span>
+        <button class="btn text small" id="settingsBtn" data-press>AI coach</button>
+      </footer>
+    </div>
+  </section>
+
+  <!-- ============ ANALYZING ============ -->
+  <section id="analyzing" class="view" hidden>
+    <div class="an-wrap">
+      <div class="an-frame" id="anFrame"><canvas id="anCanvas"></canvas><i class="scan"></i></div>
+      <div class="an-title" id="anTitle">Studying your photo</div>
+      <div class="an-bar"><i id="anBar"></i></div>
+      <div class="an-sub" id="anSub">Reading the photo</div>
+    </div>
+  </section>
+
+  <!-- ============ STUDIO ============ -->
+  <section id="studio" class="view" hidden>
+    <header class="bar glass">
+      <button class="icon-btn" id="backBtn" data-press aria-label="Back"><span data-icon="back"></span></button>
+      <div class="bar-title" id="barTitle">Lesson</div>
+      <button class="icon-btn" id="practiceTop" data-press aria-label="Draw along"><span data-icon="hand"></span></button>
+      <button class="icon-btn" id="refBtn" data-press aria-label="Show reference"><span data-icon="photo"></span></button>
+      <button class="icon-btn" id="coachBtn" data-press aria-label="AI coach"><span data-icon="sparkles"></span></button>
+    </header>
+
+    <div id="stage">
+      <div id="paper">
+        <canvas id="cv"></canvas>
+        <canvas id="inkAll" class="ink" hidden></canvas>
+        <canvas id="inkStep" class="ink" hidden></canvas>
+        <canvas id="ghost" class="ink ghost" hidden></canvas>
+      </div>
+
+      <div id="tools" class="tools glass" hidden>
+        <button class="icon-btn active" data-tool="pen" data-press aria-label="Pencil"><span data-icon="pencil"></span></button>
+        <button class="icon-btn" data-tool="eraser" data-press aria-label="Eraser"><span data-icon="eraser"></span></button>
+        <button class="icon-btn" id="undoBtn" data-press aria-label="Undo"><span data-icon="undo"></span></button>
+        <button class="icon-btn" id="clearBtn" data-press aria-label="Clear this step"><span data-icon="trash"></span></button>
+      </div>
+
+      <div id="pip" class="pip" hidden><canvas id="pipCanvas"></canvas></div>
+
+      <div id="caption" class="caption glass" role="status" aria-live="polite">
+        <div class="cap-top"><span id="capStep">STEP 1</span><span class="ai-badge" id="capAi" hidden>AI</span><span class="cap-tool" id="capTool"></span></div>
+        <div class="cap-title" id="capTitle">Set up the page</div>
+        <div class="cap-tip" id="capTip"></div>
+        <button class="btn primary cap-act" id="capAct" data-press>Watch this step</button>
+      </div>
+    </div>
+
+    <aside id="sheet" class="sheet glass">
+      <div class="sheet-head" id="sheetHead">
+        <div class="grab" aria-hidden="true"></div>
+        <div class="dock">
+          <div class="scrub">
+            <input type="range" id="scrub" min="0" max="1000" value="0" aria-label="Timeline">
+            <div class="ticks" id="ticks"></div>
+          </div>
+          <div class="scrub-meta"><span id="metaStep">Step 1 of 8</span><span id="metaPct">0%</span></div>
+          <div class="transport" id="transport">
+            <div class="seg small" id="modeSeg" data-value="sketch">
+              <i class="seg-thumb"></i>
+              <button data-v="sketch" data-press>Sketch</button>
+              <button data-v="paint" data-press>Paint</button>
+            </div>
+            <div class="tx-main">
+              <button class="icon-btn" id="prevBtn" data-press aria-label="Previous step"><span data-icon="prev"></span></button>
+              <button class="play" id="playBtn" data-press aria-label="Play"><span data-icon="play"></span></button>
+              <button class="icon-btn" id="nextBtn" data-press aria-label="Next step"><span data-icon="next"></span></button>
+            </div>
+            <button class="pill" id="speedBtn" data-press aria-label="Speed">1×</button>
+          </div>
+          <div class="practice-dock" id="practiceDock" hidden>
+            <button class="btn secondary" id="pPrev" data-press><span data-icon="prev"></span></button>
+            <button class="btn primary" id="pCheck" data-press><span data-icon="check"></span>Check my step</button>
+            <button class="btn secondary" id="pNext" data-press><span data-icon="next"></span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet-body" id="sheetBody">
+        <div class="pad">
+          <button class="btn primary wide" id="practiceBtn" data-press><span data-icon="hand"></span>Draw along (practice mode)</button>
+
+          <div class="group-label">About this photo</div>
+          <div class="card flat" id="insights"></div>
+
+          <div class="group-label">Steps</div>
+          <div class="steps" id="steps"></div>
+
+          <div class="group-label">Options</div>
+          <div class="card flat list">
+            <div class="row"><span>Detail level</span>
+              <div class="seg small" id="levelSeg2" data-value="standard"><i class="seg-thumb"></i><button data-v="easy" data-press>Easy</button><button data-v="standard" data-press>Std</button><button data-v="detailed" data-press>Fine</button></div>
+            </div>
+            <label class="row"><span>Wait for me after each step</span><input type="checkbox" class="switch" id="optGuided" checked></label>
+            <label class="row"><span>Keep guide lines</span><input type="checkbox" class="switch" id="optGuides"></label>
+            <label class="row"><span>Show pencil / brush</span><input type="checkbox" class="switch" id="optTool" checked></label>
+            <label class="row"><span>Read tips aloud</span><input type="checkbox" class="switch" id="optVoice"></label>
+          </div>
+
+          <div class="group-label">Save</div>
+          <div class="btn-row stack">
+            <button class="btn secondary" id="savePng" data-press><span data-icon="download"></span>Image</button>
+            <button class="btn secondary" id="saveVideo" data-press><span data-icon="film"></span>Time-lapse</button>
+            <button class="btn secondary" id="saveLesson" data-press><span data-icon="folder"></span>Keep lesson</button>
+          </div>
+          <div class="safe-pad"></div>
+        </div>
+      </div>
+    </aside>
+  </section>
+</main>
+
+<!-- Settings / AI coach -->
+<div id="modal" class="modal" hidden>
+  <div class="scrim" id="scrim"></div>
+  <div class="modal-card glass" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <div class="grab" aria-hidden="true"></div>
+    <h2 id="mTitle">AI coach</h2>
+    <p class="hint left">Atelier already analyses photos on your device. Add a free Google Gemini API key (from aistudio.google.com) and Gemini will also look at the photo and write tips that mention what is actually in it. The key is stored only in this browser, and the photo is sent only to Google's Gemini API.</p>
+    <input type="password" id="keyInput" class="field" placeholder="Gemini API key (AIza…)" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <input type="text" id="modelInput" class="field" placeholder="Model (default: gemini-flash-latest)" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label class="row plain"><span>Use the AI coach</span><input type="checkbox" class="switch" id="coachOn" checked></label>
+    <div class="btn-row">
+      <button class="btn primary" id="keySave" data-press>Save</button>
+      <button class="btn secondary" id="keyClear" data-press>Remove key</button>
+    </div>
+    <button class="btn text" id="mClose" data-press>Done</button>
+  </div>
+</div>
+
+<div id="toast" class="toast glass" role="status" aria-live="polite" hidden></div>
+
+<script src="engine-core.js"></script>
+<script src="engine-trace.js"></script>
+<script src="engine-plan.js"></script>
+<script src="player.js"></script>
+<script src="store.js"></script>
+<script src="coach.js"></script>
+<script src="practice.js"></script>
+<script src="ui.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
